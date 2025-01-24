@@ -1,6 +1,7 @@
 public class HangmanGame {
     public static void main(String[] args) {
-        MainMenu menu = new MainMenu();
-        menu.displayMenu();
+        String wordFilePath = "gameresources/wordlist.txt"; // Path to your word list file
+        MainMenu mainMenu = new MainMenu(wordFilePath);
+        mainMenu.displayMenu();
     }
 }

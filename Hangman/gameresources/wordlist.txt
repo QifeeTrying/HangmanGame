@@ -62,7 +62,7 @@ splash
 bubble
 tunnel
 pirate
-syrupy
+syrup
 kettle
 plasma
 goblin

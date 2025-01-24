@@ -1,56 +1,45 @@
-import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.Scanner;
 
 public class WordManager {
     private List<String> wordList;
 
-    // Constructor to load words from the file
-    public WordManager() {
+    public WordManager(String filePath) {
         wordList = new ArrayList<>();
-        loadWordsFromFile("gameresources/wordlist.txt"); // File path to the word list
+        loadWordsFromFile(filePath);
     }
 
-    // Method to load words from a file
     private void loadWordsFromFile(String filePath) {
-        try {
-            File file = new File(filePath);
-            Scanner scanner = new Scanner(file);
-
-            // Read each line and add it to the word list
-            while (scanner.hasNextLine()) {
-                String word = scanner.nextLine().trim();
-                if (!word.isEmpty()) {
-                    wordList.add(word);
-                }
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                wordList.add(line.trim().toLowerCase());
             }
-
-            scanner.close();
-
-            if (wordList.isEmpty()) {
-                System.out.println("Error: Word list file is empty!");
-            }
-        } catch (FileNotFoundException e) {
-            System.out.println("Error: Word list file not found at " + filePath);
+        } catch (IOException e) {
+            System.out.println("Error reading word list file: " + e.getMessage());
         }
     }
 
-    // Method to select a random word from the list
     public String getRandomWord() {
         if (wordList.isEmpty()) {
-            return null; // Return null if no words are available
+            return null;
         }
-
         Random random = new Random();
-        int index = random.nextInt(wordList.size());
-        return wordList.get(index);
+        return wordList.get(random.nextInt(wordList.size()));
     }
 
-    // Method to get all words (for debugging or viewing the list)
-    public List<String> getAllWords() {
-        return new ArrayList<>(wordList); // Return a copy to protect the original list
+    public void printWordList() {
+        if (wordList.isEmpty()) {
+            System.out.println("The word list is empty.");
+            return;
+        }
+        System.out.println("Available Words:");
+        for (String word : wordList) {
+            System.out.println(word);
+        }
     }
 }

@@ -1,94 +1,151 @@
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Scanner;
 
 public class GameProcess {
     private WordManager wordManager;
-    private String selectedWord;
-    private List<Character> guessedLetters;
-    private int incorrectGuesses;
-    private static final int MAX_INCORRECT_GUESSES = 6; // Number of allowed incorrect guesses
-    private static final char HIDDEN_CHAR = '_'; // Placeholder for hidden letters
+    private String currentWord;
+    private char[] guessedWord;
+    private int maxFailures;
+    private int failures;
+    private HashSet<Character> guessedLetters; // Tracks guessed letters
 
-    public GameProcess() {
-        wordManager = new WordManager(); // Initialize WordManager
-        guessedLetters = new ArrayList<>();
-        incorrectGuesses = 0;
+    private final String[] hangmanArt = {
+            """
+            _______
+            |     |
+                  |
+                  |
+                  |
+                  |
+         =========
+         """,
+         """
+            _______
+            |     |
+            O     |
+                  |
+                  |
+                  |
+         =========
+         """,
+         """
+            _______
+            |     |
+            O     |
+            |     |
+                  |
+                  |
+         =========
+         """,
+         """
+            _______
+            |     |
+            O     |
+           /|     |
+                  |
+                  |
+         =========
+         """,
+         """
+            _______
+            |     |
+            O     |
+           /|\\    |
+                  |
+                  |
+         =========
+         """,
+         """
+            _______
+            |     |
+            O     |
+           /|\\    |
+           /      |
+                  |
+         =========
+         """,
+         """
+            _______
+            |     |
+            O     |
+           /|\\    |
+           / \\    |
+                  |
+         =========
+         GAME OVER!
+         """
+     };
+
+    public GameProcess(WordManager wordManager) {
+        this.wordManager = wordManager;
+        this.maxFailures = 6; // Adjust max failures based on art stages
+        this.guessedLetters = new HashSet<>();
     }
 
-    // Start the game
     public void startGame() {
-        // Select a random word
-        selectedWord = wordManager.getRandomWord();
-
-        if (selectedWord == null) {
-            System.out.println("No words available. Exiting...");
+        currentWord = wordManager.getRandomWord();
+        if (currentWord == null) {
+            System.out.println("No words available to play. Please check your word list.");
             return;
         }
 
-        System.out.println("Welcome to Hangman!");
-        Scanner scanner = new Scanner(System.in);
+        guessedWord = new char[currentWord.length()];
+        for (int i = 0; i < guessedWord.length; i++) {
+            guessedWord[i] = '_';
+        }
+        failures = 0;
 
-        // Game loop
-        while (incorrectGuesses < MAX_INCORRECT_GUESSES) {
-            System.out.println("\nCurrent word: " + getCurrentWordState());
-            System.out.println("Incorrect guesses left: " + (MAX_INCORRECT_GUESSES - incorrectGuesses));
-            System.out.print("Enter a letter to guess: ");
+        Scanner scanner = new Scanner(System.in);
+        while (failures < maxFailures && !isWordGuessed()) {
+            System.out.println("\n" + hangmanArt[failures]); // Display hangman art
+            System.out.println("Current Word: " + String.valueOf(guessedWord));
+            System.out.println("Guessed Letters: " + guessedLetters);
+            System.out.println("Failures: " + failures + "/" + maxFailures);
+            System.out.print("Enter your guess (a single letter): ");
             String input = scanner.nextLine().toLowerCase();
 
-            // Validate input
-            if (input.length() != 1 || !input.matches("[a-z]")) {
-                System.out.println("Please enter a single letter (a-z).");
+            if (input.length() != 1 || !Character.isLetter(input.charAt(0))) {
+                System.out.println("Invalid input. Please enter a single letter.");
                 continue;
             }
 
-            char guess = input.charAt(0);
-
-            // Check if letter has already been guessed
-            if (guessedLetters.contains(guess)) {
-                System.out.println("You already guessed that letter.");
+            char guessedLetter = input.charAt(0);
+            if (guessedLetters.contains(guessedLetter)) {
+                System.out.println("You've already guessed that letter! Try again.");
                 continue;
             }
 
-            // Add guessed letter to the list
-            guessedLetters.add(guess);
-
-            // Check if the guess is correct
-            if (selectedWord.indexOf(guess) >= 0) {
+            guessedLetters.add(guessedLetter);
+            if (!processGuess(guessedLetter)) {
+                failures++;
+                System.out.println("Incorrect guess!");
+            } else {
                 System.out.println("Good guess!");
-                if (isWordComplete()) {
-                    System.out.println("Congratulations, you guessed the word: " + selectedWord);
-                    break;
-                }
-            } else {
-                incorrectGuesses++;
-                System.out.println("Incorrect guess! You have " + (MAX_INCORRECT_GUESSES - incorrectGuesses) + " attempts left.");
             }
         }
 
-        if (incorrectGuesses == MAX_INCORRECT_GUESSES) {
-            System.out.println("\nGame over! You ran out of attempts.");
-            System.out.println("The word was: " + selectedWord);
+        System.out.println("\n" + hangmanArt[failures]); // Final hangman art
+        if (isWordGuessed()) {
+            System.out.println("Congratulations! You guessed the word: " + currentWord);
+        } else {
+            System.out.println("Game Over! The correct word was: " + currentWord);
         }
     }
 
-    // Get the current state of the word with hidden letters
-    private String getCurrentWordState() {
-        StringBuilder currentState = new StringBuilder();
-        for (char letter : selectedWord.toCharArray()) {
-            if (guessedLetters.contains(letter)) {
-                currentState.append(letter).append(" ");
-            } else {
-                currentState.append(HIDDEN_CHAR).append(" ");
+    private boolean processGuess(char letter) {
+        boolean correct = false;
+        for (int i = 0; i < currentWord.length(); i++) {
+            if (currentWord.charAt(i) == letter && guessedWord[i] == '_') {
+                guessedWord[i] = letter;
+                correct = true;
             }
         }
-        return currentState.toString().trim();
+        return correct;
     }
 
-    // Check if the word is completely guessed
-    private boolean isWordComplete() {
-        for (char letter : selectedWord.toCharArray()) {
-            if (!guessedLetters.contains(letter)) {
+    private boolean isWordGuessed() {
+        for (char c : guessedWord) {
+            if (c == '_') {
                 return false;
             }
         }
